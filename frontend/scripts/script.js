@@ -133,27 +133,75 @@ async function cadastrarProduto(dadosProduto) {
 
 async function excluirProduto(id) {
     try {
-        await listarProdutosPorId(id)
-        const resposta = await fetch(`${API_URL}/produtos/${id}`, method='DELETE');
+        const resposta = await fetch(`${API_URL}/produtos/${id}`, {method : 'DELETE'});
 
         if (!resposta.ok) {
-            throw new Error('Erro ao buscar produto.');
+            throw new Error('Erro ao excluir produto.');
         }
 
-        const produto = await resposta.json();
-
-        if (produto.length === 0) {
-            listaProdutos.innerHTML = `
-                <tr>
-                    <td colspan = "5">Nenhum produto cadastrado com esse id.</td> 
-                </tr>
-            `;
-            return;
-        };
+        mostrarMensagem(`Produto excluído com sucesso`);
+        listarProdutos();
 
     } catch (erro) {
         mostrarMensagem(erro.message, true);
     }
+}
+
+let idProdutoEditando = null;
+async function editarProduto(id, dadosProduto) {
+    try {
+        const resposta = await fetch(`${API_URL}/produtos/${id}`, {
+            method : 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(dadosProduto)
+        });
+
+        if (!resposta.ok) {
+            throw new Error('Erro ao atualizar produto');
+        }
+
+        const result = await resposta.json();
+        return result;
+
+    } catch (erro) {
+        mostrarMensagem(erro.message, true);
+    }
+}
+
+async function prepararEdicao(id){
+    try{
+        const resposta = await fetch(`${API_URL}/produtos/${id}`);
+
+        if(!resposta.ok){
+            throw new Error(`Erro ao buscar produto`);
+        };
+
+        const dados = await resposta.json();
+        const produto = dados[0];
+
+        idProdutoEditando = produto.id;
+
+        nome.value = produto.nome;
+        descricao.value = produto.descricao;
+        preco.value = produto.preco;
+
+        tituloFormulario.textContent = "Editar Produto";
+        botaoSalvar.textContent = "Salvar alteração";
+
+        window.scrollTo(0,0);
+
+    } catch (erro) {
+        mostrarMensagem(erro.message, true);
+    }
+}
+
+async function limparFormulario() {
+    formProduto.reset();
+    idProdutoEditando = null;
+    tituloFormulario.textContent = "Cadastrar produto";
+    botaoSalvar.textContent = "Cadastrar";
 }
 
 formProduto.addEventListener(`submit`, async(e) => {
@@ -161,15 +209,26 @@ formProduto.addEventListener(`submit`, async(e) => {
     if(!nome.value || !preco.value){
         throw new Error(`Insira todos os dados obrigatorios para cadastrar um produto`)
     }
-    const dadosProdutos = {
+    const dadosProduto = {
         nome : nome.value,
         descricao : descricao.value,
         preco : preco.value
     }
-    console.log(dadosProdutos);
-    await cadastrarProduto(dadosProdutos);
-    mostrarMensagem(`Produto cadastrado com sucesso`)
-    await listarProdutos();
+    try{
+        if(idProdutoEditando === null){
+            await cadastrarProduto(dadosProduto);
+            mostrarMensagem(`Produto cadastrado com sucesso`);
+        }
+        else{
+            await editarProduto(idProdutoEditando, dadosProduto);
+            mostrarMensagem(`Produto atualizado com sucesso`);
+        }
+
+        limparFormulario();    
+        listarProdutos();    
+    } catch(erro){
+        mostrarMensagem(erro.message, true);
+    }
 });
 
 botaoBuscar.addEventListener(`click`, async () =>{

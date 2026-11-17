@@ -22,7 +22,6 @@ async function buscarProdutoPorId(id) {
 };
 
 async function criarProduto(nome, descricao, preco) {
-    console.log(`Var na model:`, nome, descricao, preco);
     const sql = `
         INSERT INTO produtos (nome, descricao, preco)
         VALUES (?, ?, ?);
